@@ -5,14 +5,13 @@ const { body, validationResult } = require('express-validator');
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
-const jwtSecret = "MeowMeowMeowMeowMeowMeowMeowMeow";
 
 //for reset password mail
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: "bishtdeepika028@gmail.com",
-    pass: "xati yrkb xjyw ovrl"
+    user: process.env,USER_EID,
+    pass: process.env.USER_PASS
   }
 })
 
@@ -30,7 +29,7 @@ router.post("/createuser",
 
     const salt = await bcrypt.genSalt(10);
     let secPassword = await bcrypt.hash(req.body.password, salt);
-    const authToken = jwt.sign(secPassword, jwtSecret)
+    const authToken = jwt.sign(secPassword, process.env.JWT_SECRET)
     try {
       await User.create({
         name: req.body.name,
@@ -70,7 +69,7 @@ router.post("/loginuser", [
         }
       }
 
-      const authToken = jwt.sign(data, jwtSecret)
+      const authToken = jwt.sign(data, process.env.JWT_SECRET)
       return res.json({ success: true, authToken: authToken, role: userData.role });
     } catch (error) {
       console.log(error);
@@ -90,7 +89,7 @@ router.post("/forgotpassword", async (req, res) => {
       return res.status(400).json({ errors: "User Does Not Exist" });
     }
     //User exists creating one time link
-    const secret = jwtSecret + userCheck.password;
+    const secret = process.env.JWT_SECRET + userCheck.password;
     const payload = {
       email: userCheck.email,
       id: userCheck.id
@@ -98,10 +97,10 @@ router.post("/forgotpassword", async (req, res) => {
 
     const token = jwt.sign(payload, secret, { expiresIn: '120s' });
     const mailOptions = {
-      from: "bishtdeepika028@gmail.com",
+      from: process.env.USER_EID,
       to: email,
       subject: "Sending Email For password Reset",
-      text: `This Link Valid For 2 MINUTES http://localhost:3000/reset-password/${userCheck.id}/${token}`
+      text: `This Link Valid For 2 MINUTES ${process.env.FRONTEND_URL}/reset-password/${userCheck.id}/${token}`
     }
 
     transporter.sendMail(mailOptions, (error, info) => {
@@ -128,7 +127,7 @@ router.post("/resetpassword/:id/:token", async (req, res) => {
   if (!userCheck) {
     return res.status(400).json({  success:false,errors: "Invalid User" });
   }
-  const secret = jwtSecret + userCheck.password;
+  const secret = process.env.JWT_SECRET + userCheck.password;
   try {
     
     const payload = jwt.verify(token, secret);
@@ -154,7 +153,7 @@ router.get("/resetpassword/:id/:token", async (req, res) => {
   if (!userCheck) {
     return res.status(400).json({ errors: "Invalid User" });
   }
-  const secret = jwtSecret + userCheck.password;
+  const secret =process.env.JWT_SECRET + userCheck.password;
   try {
     const payload = jwt.verify(token, secret);
     if(payload.email && payload._id)
